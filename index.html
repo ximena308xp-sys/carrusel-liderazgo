@@ -21,18 +21,13 @@
 }
 * { box-sizing: border-box; }
 :root { overflow-x: hidden; }
-body {
-  background: var(--yellow); color: var(--ink); font-family: var(--font);
-  padding-block: 20px 28px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  min-height: 100vh; overflow-x: hidden;
-}
-main { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; justify-items: center; }
-.wrap { width: 100%; position: relative; }
+html, body { height: 100%; }
+body { background: var(--yellow); color: var(--ink); font-family: var(--font); margin: 0; overflow: hidden; }
+main { height: 100%; }
+.wrap { position: relative; width: 100%; height: 100%; }
 
 /* ---- escena ---- */
-.scene { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--win); border-radius: 28px; }
+.scene { position: absolute; inset: 0; overflow: hidden; background: var(--win); }
 
 /* la ventana: transparente por dentro, el amarillo cubre todo lo demás */
 .hole {
@@ -67,23 +62,31 @@ main { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; justify-item
 
 /* ---- texto (en la zona amarilla) ---- */
 .copy { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
-.item { position: absolute; top: 50%; transform: translateY(-50%); width: 34%; }
+.item { position: absolute; top: 50%; transform: translateY(-50%); width: 36%; isolation: isolate; }
 .item.right { left: var(--pos); }
 .item.left { right: var(--pos); }
 .item h2 {
   margin: 0 0 16px; font-weight: 800; line-height: 1.02; letter-spacing: -.01em;
-  font-size: clamp(1.4rem, 3.3vw, 3.1rem); text-wrap: balance;
+  font-size: clamp(1.8rem, 5vw, 4.8rem); text-wrap: balance;
   opacity: 0; transform: translateY(22px); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.9,.3,1);
 }
 .item p {
-  margin: 0; font-size: clamp(.9rem, 1.7vw, 1.3rem); line-height: 1.5; color: var(--muted); max-width: 24ch; font-weight: 500;
+  margin: 0; font-size: clamp(1.1rem, 2.9vw, 2.5rem); line-height: 1.35; color: var(--muted); max-width: 24ch; font-weight: 500;
   opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.9,.3,1);
 }
+/* número grande y transparente detrás del párrafo */
+.item .num {
+  position: absolute; z-index: -1; left: -.04em; bottom: 100%; margin-bottom: -.1em;
+  font-weight: 800; font-size: clamp(5rem, 17vw, 16rem); line-height: .8; letter-spacing: -.04em;
+  color: var(--ink); opacity: 0; transform: translateY(20px); pointer-events: none;
+  transition: opacity .6s ease, transform .7s cubic-bezier(.2,.9,.3,1);
+}
+.item.on .num { opacity: .14; transform: none; transition-delay: .7s; }
 .item.on h2 { opacity: 1; transform: none; transition-delay: .6s; }
 .item.on p { opacity: 1; transform: none; transition-delay: .8s; }
 
 /* ---- controles ---- */
-.controls { display: flex; align-items: center; gap: 18px; }
+.controls { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 18px; }
 .nav {
   width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--ink); color: var(--yellow);
   display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 20px -10px var(--shadow);
@@ -97,11 +100,16 @@ main { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; justify-item
 .hint { margin: 0; font-size: .82rem; color: var(--muted); text-align: center; max-width: 56ch; }
 button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 
-@media (max-width: 760px) {
-  .scene { aspect-ratio: 2 / 1; border-radius: 20px; }
-  .copy { position: static; display: grid; margin-top: 26px; min-height: 200px; }
+@media (max-aspect-ratio: 5/4), (max-width: 520px) {
+  body { overflow: auto; }
+  .wrap { height: auto; }
+  .scene { position: relative; inset: auto; aspect-ratio: 1.6 / 1; }
+  .copy { position: static; display: grid; margin-top: 24px; padding: 0 20px; min-height: 230px; }
   .item, .item.left, .item.right { position: static; transform: none; width: auto; grid-area: 1 / 1; align-self: start; }
-  .item h2 { font-size: clamp(1.7rem, 8vw, 2.3rem); }
+  .item h2 { font-size: clamp(1.8rem, 8vw, 2.4rem); }
+  .item p { font-size: 1.1rem; max-width: none; }
+  .item .num { font-size: 30vw; left: auto; right: 0; top: 10%; bottom: auto; margin: 0; }
+  .controls { position: static; transform: none; justify-content: center; margin: 12px 0 28px; }
   .slot .ph span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -109,7 +117,6 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 </style>
 
-<style>html,body{margin:0}</style>
 </head>
 <body>
 <main>
@@ -118,11 +125,11 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
       <div class="hole" id="hole"></div>
     </div>
     <div class="copy" id="copy" aria-live="polite"></div>
-  </div>
   <div class="controls">
     <button class="nav" id="prev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
     <div class="dots" id="dots"></div>
     <button class="nav" id="next" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
   </div>
 </main>
 
@@ -163,7 +170,7 @@ const slots = [], texts = [], dots = [];
 items.forEach((it, i) => {
   const s = document.createElement("button");
   s.type = "button"; s.className = "slot";
-  s.style.setProperty("--x", xs[i] + "%"); s.style.setProperty("--sw", "12%"); if (scales[i]) s.style.setProperty("--sc", scales[i]);
+  s.style.setProperty("--x", xs[i] + "%"); if (scales[i]) s.style.setProperty("--sc", scales[i]);
   s.setAttribute("aria-label", "Ilustración de " + it.t);
   s.innerHTML = '<div class="ph">' + camera + '<span>Ilustración ' + (i + 1) + '</span></div>';
   const input = document.createElement("input");
@@ -185,8 +192,10 @@ items.forEach((it, i) => {
   const t = document.createElement("div");
   t.className = "item " + side[i];
   // el texto queda a una distancia fija del círculo, no pegado al borde de la pantalla
+  t.style.width = Math.min(48, side[i] === "right" ? 97 - (xs[i] + 20.5) : (xs[i] - 20.5) - 3) + "%";
   t.style.setProperty("--pos", (side[i] === "right" ? xs[i] + 20.5 : 100 - xs[i] + 20.5) + "%");
-  t.innerHTML = '<h2></h2><p></p>';
+  t.innerHTML = '<span class="num" aria-hidden="true"></span><h2></h2><p></p>';
+  t.querySelector(".num").textContent = "0" + (i + 1);
   t.querySelector("h2").textContent = it.t;
   t.querySelector("p").textContent = it.d;
   copy.appendChild(t); texts.push(t);
@@ -202,6 +211,7 @@ function placeHole() {
   const size = Math.min(W * 0.29, H * 0.86);       // grande, pero sin dejar ver a las vecinas
   const cx = xs[active] / 100 * W, cy = H / 2;
   hole.style.width = hole.style.height = size + "px";
+  scene.style.setProperty("--sw", (size * 0.414) + "px");   // las ilustraciones se miden contra el círculo
   hole.style.transform = "translate(" + (cx - size / 2) + "px," + (cy - size / 2) + "px)";
 }
 function render() {
