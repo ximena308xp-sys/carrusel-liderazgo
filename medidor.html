@@ -56,10 +56,6 @@ svg { display: block; width: 100%; height: auto; overflow: visible; }
     <circle cx="400" cy="400" r="13" fill="#fff"/>
   </svg>
   <div class="copy" id="copy" aria-live="polite"></div>
-  <div class="nav">
-    <button id="prev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <button id="next" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
-  </div>
 </div>
 
 <script>
@@ -73,6 +69,18 @@ const items = [
   { c: "#464842", t: "Mantiene la calma.", d: "" }
 ];
 
+
+// Caritas: del estrés alto (izquierda) a la calma (derecha)
+const eyes = '<circle cx="-10" cy="-4" r="3.2" fill="currentColor" stroke="none"/><circle cx="10" cy="-4" r="3.2" fill="currentColor" stroke="none"/>';
+const faces = [
+  eyes + '<path d="M-19 -17 L-6 -11 M19 -17 L6 -11"/><path d="M-14 15 l7 -6 l7 6 l7 -6 l7 6"/><path d="M27 -26 q4 6 0 9 q-4 -3 0 -9z" fill="currentColor"/>',
+  eyes + '<path d="M-18 -11 L-6 -17 M18 -11 L6 -17"/><path d="M-12 15 Q0 7 12 15"/>',
+  eyes + '<path d="M-17 -14 L-5 -14 M17 -14 L5 -14"/><path d="M-11 12 L11 12"/>',
+  eyes + '<path d="M-11 10 Q0 15 11 10"/>',
+  eyes + '<path d="M-13 8 Q0 21 13 8"/>',
+  '<path d="M-15 -3 Q-9 -10 -3 -3 M3 -3 Q9 -10 15 -3"/><path d="M-15 7 Q0 27 15 7"/>'
+];
+const darkSeg = c => ["#1c5931", "#543725", "#464842"].includes(c);
 const cx = 400, cy = 400, R = 360, r = 190, n = items.length, step = 180 / n;
 const P = (rad, deg) => { const a = deg * Math.PI / 180; return [cx + rad * Math.cos(a), cy - rad * Math.sin(a)]; };
 const f = v => v.toFixed(2);
@@ -94,6 +102,14 @@ items.forEach((it, i) => {
   path.setAttribute("d", `M${f(x0)} ${f(y0)} A${R} ${R} 0 0 1 ${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)} A${r} ${r} 0 0 0 ${f(x3)} ${f(y3)} Z`);
   path.setAttribute("fill", it.c);
   g.appendChild(path);
+  const [fx, fy] = P((R + r) / 2, mid);
+  const ico = document.createElementNS(NS, "g");
+  ico.setAttribute("transform", `translate(${f(fx)} ${f(fy)}) scale(1.05)`);
+  ico.setAttribute("fill", "none"); ico.setAttribute("stroke", "currentColor");
+  ico.setAttribute("stroke-width", "4"); ico.setAttribute("stroke-linecap", "round"); ico.setAttribute("stroke-linejoin", "round");
+  ico.style.color = darkSeg(it.c) ? "#fff" : "#543725"; ico.style.pointerEvents = "none";
+  ico.innerHTML = '<circle r="30"/>' + faces[i % faces.length];
+  g.appendChild(ico);
   g.addEventListener("click", () => pick(i));
   g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
   document.getElementById("segs").appendChild(g);
@@ -105,8 +121,6 @@ function pick(i) {
   gauge.classList.add("picked");
   segs.forEach((s, k) => s.g.classList.toggle("on", k === i));
   segs[i].g.parentNode.appendChild(segs[i].g);
-  document.getElementById("prev").disabled = i === 0;
-  document.getElementById("next").disabled = i === n - 1;
   needle.style.transform = "rotate(" + (90 - segs[i].mid) + "deg)";
   copy.classList.remove("in");
   copy.innerHTML = items[i].d ? "<h2></h2><p></p>" : "<h2></h2>";
@@ -115,8 +129,6 @@ function pick(i) {
   void copy.offsetWidth;
   copy.classList.add("in");
 }
-document.getElementById("prev").addEventListener("click", () => pick(Math.max(0, active - 1)));
-document.getElementById("next").addEventListener("click", () => pick(Math.min(n - 1, active + 1)));
 document.addEventListener("keydown", e => { if (e.key === "ArrowRight") pick(Math.min(n - 1, active + 1)); if (e.key === "ArrowLeft") pick(Math.max(0, active - 1)); });
 pick(0);
 </script>
