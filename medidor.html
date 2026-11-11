@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medidor interactivo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+/* Medidor semicircular de 5 colores. Fondo transparente: se ve lo que haya detrás en Genially.
+   Al tocar un color, la aguja gira hasta él, el color sale hacia afuera y aparece su texto. */
+:root {
+  --verde: #1c5931;
+  --amarillo: #f1b542;
+  --crema: #f2d091;
+  --naranja: #f1a54a;
+  --gris: #464842;
+  --cafe: #543725;
+  --font: "Poppins", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { font-family: var(--font); color: var(--verde); display: grid; justify-items: center; padding: 16px; }
+.gauge { width: min(100%, 760px); }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.seg { cursor: pointer; transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .4s ease, filter .4s ease; outline: none; }
+.seg { transform-origin: 400px 400px; }
+.seg:hover { transform: scale(1.025); }
+.seg.on { transform: scale(1.09); filter: drop-shadow(0 8px 12px rgba(0,0,0,.3)); }
+.seg:focus-visible path { stroke: var(--verde); stroke-width: 4; }
+
+#needle { transform-origin: 400px 400px; transform: rotate(-75deg); transition: transform .95s cubic-bezier(.34,1.35,.5,1); filter: drop-shadow(0 5px 7px rgba(0,0,0,.35)); pointer-events: none; }
+.nav { display: flex; justify-content: center; gap: 16px; margin-top: 4px; }
+.nav button { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--verde); color: var(--amarillo); display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 20px -10px rgba(0,0,0,.4); transition: transform .25s cubic-bezier(.3,1.4,.5,1), opacity .25s; }
+.nav button:hover:not(:disabled) { transform: scale(1.1); }
+.nav button:disabled { opacity: .3; cursor: default; }
+.nav svg { width: 22px; height: 22px; }
+
+.copy { min-height: 64px; text-align: center; margin: 4px auto 0; max-width: 620px; padding: 0 8px; }
+.copy.in { animation: up .55s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.copy h2 { margin: 0 0 10px; font-weight: 800; font-size: clamp(1.7rem, 5vw, 2.8rem); line-height: 1.05; letter-spacing: -.01em; text-wrap: balance; }
+.copy p { margin: 0 auto; font-weight: 500; font-size: clamp(1.05rem, 2.6vw, 1.5rem); line-height: 1.4; color: var(--cafe); max-width: 30ch; }
+
+@media (prefers-reduced-motion: reduce) { .seg, #needle, .copy.in { transition-duration: .01s; animation: none; } }
+</style>
+</head>
+<body>
+<div class="gauge" id="gauge">
+  <svg viewBox="0 0 800 450" role="group" aria-label="Medidor de cinco colores">
+    <g id="segs"></g>
+    <g id="needle">
+      <rect x="391" y="110" width="18" height="290" rx="9" fill="#fff"/>
+    </g>
+    <circle cx="400" cy="400" r="34" fill="#1c5931"/>
+    <circle cx="400" cy="400" r="13" fill="#fff"/>
+  </svg>
+  <div class="copy" id="copy" aria-live="polite"></div>
+  <div class="nav">
+    <button id="prev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button id="next" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<script>
+// Cambia aquí los textos de cada color (de izquierda a derecha)
+const items = [
+  { c: "#1c5931", t: "Prioriza.", d: "" },
+  { c: "#f1b542", t: "Organiza tareas.", d: "" },
+  { c: "#f2d091", t: "Comunica claramente.", d: "" },
+  { c: "#f1a54a", t: "Apoya al equipo.", d: "" },
+  { c: "#543725", t: "Toma decisiones rápidas.", d: "" },
+  { c: "#464842", t: "Mantiene la calma.", d: "" }
+];
+
+const cx = 400, cy = 400, R = 360, r = 190, n = items.length, step = 180 / n;
+const P = (rad, deg) => { const a = deg * Math.PI / 180; return [cx + rad * Math.cos(a), cy - rad * Math.sin(a)]; };
+const f = v => v.toFixed(2);
+const NS = "http://www.w3.org/2000/svg";
+const segs = [], gauge = document.getElementById("gauge"), copy = document.getElementById("copy"), needle = document.getElementById("needle");
+let active = -1;
+
+items.forEach((it, i) => {
+  const a0 = 180 - step * i, a1 = a0 - step, mid = (a0 + a1) / 2;
+  const gp = 0 * 180 / Math.PI, dO = gp / R, dI = gp / r; /* espacio entre colores (px) */
+  const [x0, y0] = P(R, a0 - dO), [x1, y1] = P(R, a1 + dO), [x2, y2] = P(r, a1 + dI), [x3, y3] = P(r, a0 - dI);
+  const g = document.createElementNS(NS, "g");
+  g.setAttribute("class", "seg"); g.setAttribute("tabindex", "0"); g.setAttribute("role", "button");
+  g.setAttribute("aria-label", it.t);
+  const rad = mid * Math.PI / 180;
+  g.style.setProperty("--dx", "0px"); g.style.setProperty("--dy", "0px");
+  g.style.setProperty("--dx2", f(20 * Math.cos(rad)) + "px"); g.style.setProperty("--dy2", f(-20 * Math.sin(rad)) + "px");
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("d", `M${f(x0)} ${f(y0)} A${R} ${R} 0 0 1 ${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)} A${r} ${r} 0 0 0 ${f(x3)} ${f(y3)} Z`);
+  path.setAttribute("fill", it.c);
+  g.appendChild(path);
+  g.addEventListener("click", () => pick(i));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
+  document.getElementById("segs").appendChild(g);
+  segs.push({ g, mid });
+});
+
+function pick(i) {
+  active = i;
+  gauge.classList.add("picked");
+  segs.forEach((s, k) => s.g.classList.toggle("on", k === i));
+  segs[i].g.parentNode.appendChild(segs[i].g);
+  document.getElementById("prev").disabled = i === 0;
+  document.getElementById("next").disabled = i === n - 1;
+  needle.style.transform = "rotate(" + (90 - segs[i].mid) + "deg)";
+  copy.classList.remove("in");
+  copy.innerHTML = items[i].d ? "<h2></h2><p></p>" : "<h2></h2>";
+  copy.querySelector("h2").textContent = items[i].t;
+  if (items[i].d) copy.querySelector("p").textContent = items[i].d;
+  void copy.offsetWidth;
+  copy.classList.add("in");
+}
+document.getElementById("prev").addEventListener("click", () => pick(Math.max(0, active - 1)));
+document.getElementById("next").addEventListener("click", () => pick(Math.min(n - 1, active + 1)));
+document.addEventListener("keydown", e => { if (e.key === "ArrowRight") pick(Math.min(n - 1, active + 1)); if (e.key === "ArrowLeft") pick(Math.max(0, active - 1)); });
+pick(0);
+</script>
+</body>
+</html>
