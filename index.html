@@ -75,13 +75,6 @@ main { height: 100%; }
   opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.9,.3,1);
 }
 /* número grande y transparente detrás del párrafo */
-.item .num {
-  position: absolute; z-index: -1; left: -.04em; bottom: 100%; margin-bottom: -.1em;
-  font-weight: 800; font-size: clamp(5rem, 17vw, 16rem); line-height: .8; letter-spacing: -.04em;
-  color: var(--ink); opacity: 0; transform: translateY(20px); pointer-events: none;
-  transition: opacity .6s ease, transform .7s cubic-bezier(.2,.9,.3,1);
-}
-.item.on .num { opacity: .14; transform: none; transition-delay: .7s; }
 .item.on h2 { opacity: 1; transform: none; transition-delay: .6s; }
 .item.on p { opacity: 1; transform: none; transition-delay: .8s; }
 
@@ -108,7 +101,6 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   .item, .item.left, .item.right { position: static; transform: none; width: auto; grid-area: 1 / 1; align-self: start; }
   .item h2 { font-size: clamp(1.8rem, 8vw, 2.4rem); }
   .item p { font-size: 1.1rem; max-width: none; }
-  .item .num { font-size: 30vw; left: auto; right: 0; top: 10%; bottom: auto; margin: 0; }
   .controls { position: static; transform: none; justify-content: center; margin: 12px 0 28px; }
   .slot .ph span { display: none; }
 }
@@ -194,8 +186,7 @@ items.forEach((it, i) => {
   // el texto queda a una distancia fija del círculo, no pegado al borde de la pantalla
   t.style.width = Math.min(48, side[i] === "right" ? 97 - (xs[i] + 20.5) : (xs[i] - 20.5) - 3) + "%";
   t.style.setProperty("--pos", (side[i] === "right" ? xs[i] + 20.5 : 100 - xs[i] + 20.5) + "%");
-  t.innerHTML = '<span class="num" aria-hidden="true"></span><h2></h2><p></p>';
-  t.querySelector(".num").textContent = "0" + (i + 1);
+  t.innerHTML = '<h2></h2><p></p>';
   t.querySelector("h2").textContent = it.t;
   t.querySelector("p").textContent = it.d;
   copy.appendChild(t); texts.push(t);
