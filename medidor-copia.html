@@ -143,7 +143,7 @@ function pick(i) {
 document.addEventListener("keydown", e => { stop(); if (e.key === "ArrowLeft") pick(Math.min(n - 1, active + 1)); if (e.key === "ArrowRight") pick(Math.max(0, active - 1)); });
 
 // Recorrido automático: un color por segundo, en el orden de la lista (empieza por la calma, a la derecha)
-const START = 5000, EACH = 1000;           // ms: espera inicial y tiempo por elemento
+const START = 9200, EACH = 1000;           // ms: espera inicial y tiempo por elemento
 let timers = [];
 function stop() { timers.forEach(clearTimeout); timers = []; }
 items.forEach((_, i) => timers.push(setTimeout(() => pick(i), START + EACH * i)));
