@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medidor interactivo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+/* Medidor semicircular de 5 colores. Fondo transparente: se ve lo que haya detrás en Genially.
+   Al tocar un color, la aguja gira hasta él, el color sale hacia afuera y aparece su texto. */
+:root {
+  --verde: #1c5931;
+  --amarillo: #f1b542;
+  --crema: #f2d091;
+  --naranja: #f1a54a;
+  --gris: #464842;
+  --cafe: #543725;
+  --font: "Poppins", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { font-family: var(--font); color: var(--verde); display: grid; justify-items: center; padding: 16px; }
+.gauge { width: min(88%, 680px); }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.seg { cursor: pointer; transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .4s ease, filter .4s ease; outline: none; }
+.seg { transform-origin: 400px 400px; }
+.seg:hover { transform: scale(1.025); }
+.seg.on { transform: scale(1.09); filter: drop-shadow(0 0 14px rgba(155,232,168,.9)) drop-shadow(0 8px 12px rgba(0,0,0,.3)); }
+.seg.on.plin { animation: plin .9s ease-out; }
+@keyframes plin { 0% { filter: drop-shadow(0 0 0 rgba(155,232,168,0)); } 30% { filter: drop-shadow(0 0 30px #9be8a8) drop-shadow(0 0 10px #9be8a8); } 100% { filter: drop-shadow(0 0 14px rgba(155,232,168,.9)) drop-shadow(0 8px 12px rgba(0,0,0,.3)); } }
+.spark { opacity: 0; pointer-events: none; }
+.spark.go { animation: spk .9s ease-out; }
+@keyframes spk { 0% { opacity: 0; transform: scale(0) rotate(0); } 35% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { opacity: 0; transform: scale(.2) rotate(90deg); } }
+.seg:focus-visible path { stroke: var(--verde); stroke-width: 4; }
+
+#needle { transform-origin: 400px 400px; transform: rotate(90deg); transition: transform .6s cubic-bezier(.34,1.35,.5,1); filter: drop-shadow(0 5px 7px rgba(0,0,0,.35)); pointer-events: none; }
+.nav { display: flex; justify-content: center; gap: 16px; margin-top: 4px; }
+.nav button { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--verde); color: var(--amarillo); display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 20px -10px rgba(0,0,0,.4); transition: transform .25s cubic-bezier(.3,1.4,.5,1), opacity .25s; }
+.nav button:hover:not(:disabled) { transform: scale(1.1); }
+.nav button:disabled { opacity: .3; cursor: default; }
+.nav svg { width: 22px; height: 22px; }
+
+.copy { min-height: 64px; text-align: center; margin: 4px auto 0; max-width: 620px; padding: 0 8px; }
+.copy.in { animation: up .55s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.copy h2 { margin: 0 0 10px; font-weight: 800; font-size: clamp(1.7rem, 5vw, 2.8rem); line-height: 1.05; letter-spacing: -.01em; text-wrap: balance; }
+.copy p { margin: 0 auto; font-weight: 500; font-size: clamp(1.05rem, 2.6vw, 1.5rem); line-height: 1.4; color: var(--cafe); max-width: 30ch; }
+
+@media (prefers-reduced-motion: reduce) { .seg, #needle, .copy.in { transition-duration: .01s; animation: none; } }
+</style>
+</head>
+<body>
+<div class="gauge" id="gauge">
+  <svg viewBox="0 0 800 450" role="group" aria-label="Medidor de cinco colores">
+    <g id="segs"></g>
+    <g id="needle">
+      <rect x="391" y="172" width="18" height="228" rx="9" fill="#fff"/>
+    </g>
+    <circle cx="400" cy="400" r="34" fill="#1c5931"/>
+    <circle cx="400" cy="400" r="13" fill="#fff"/>
+  </svg>
+  <div class="copy" id="copy" aria-live="polite"></div>
+</div>
+
+<script>
+// Cambia aquí los textos de cada color (de izquierda a derecha)
+const items = [
+  { c: "#1c5931", t: "Mantiene la calma.", d: "" },
+  { c: "#f1b542", t: "Prioriza.", d: "" },
+  { c: "#f2d091", t: "Organiza tareas.", d: "" },
+  { c: "#f1a54a", t: "Comunica claramente.", d: "" },
+  { c: "#543725", t: "Apoya al equipo.", d: "" },
+  { c: "#464842", t: "Toma decisiones rápidas.", d: "" }
+];
+
+
+// Íconos (mismo orden que los textos)
+const faces = [
+ '<path d="M-20 16 C-22 -10 -2 -24 22 -22 C24 2 6 20 -20 16 Z"/><path d="M-20 16 L8 -10"/>',
+ '<path d="M-22 -14h24 M-22 0h16 M-22 14h8"/><path d="M16 18V-16 M7 -7l9 -9 9 9"/>',
+ '<rect x="-18" y="-22" width="36" height="46" rx="6"/><path d="M-9 -6l3 3 6 -7 M4 -3h8 M-9 12l3 3 6 -7 M4 13h8"/>',
+ '<path d="M-24 -18H24V10H-6L-16 21V10H-24Z"/><path d="M-12 -8h24 M-12 0h14"/>',
+ '<circle cx="-10" cy="-10" r="7"/><circle cx="13" cy="-8" r="6"/><path d="M-24 20c0-12 7-18 14-18s14 6 14 18 M7 20c0-9 4-14 9-14 6 0 10 5 10 14"/>',
+ '<path d="M7 -26 L-13 4 H0 L-7 26 L15 -7 H2 Z"/>'
+];
+const darkSeg = c => ["#1c5931", "#543725", "#464842"].includes(c);
+const cx = 400, cy = 400, R = 360, r = 190, n = items.length, step = 180 / n;
+const P = (rad, deg) => { const a = deg * Math.PI / 180; return [cx + rad * Math.cos(a), cy - rad * Math.sin(a)]; };
+const f = v => v.toFixed(2);
+const NS = "http://www.w3.org/2000/svg";
+const segs = [], gauge = document.getElementById("gauge"), copy = document.getElementById("copy"), needle = document.getElementById("needle");
+let active = -1;
+
+items.forEach((it, i) => {
+  const a0 = 180 - step * (n - 1 - i), a1 = a0 - step, mid = (a0 + a1) / 2;
+  const gp = 0 * 180 / Math.PI, dO = gp / R, dI = gp / r; /* espacio entre colores (px) */
+  const [x0, y0] = P(R, a0 - dO), [x1, y1] = P(R, a1 + dO), [x2, y2] = P(r, a1 + dI), [x3, y3] = P(r, a0 - dI);
+  const g = document.createElementNS(NS, "g");
+  g.setAttribute("class", "seg"); g.setAttribute("tabindex", "0"); g.setAttribute("role", "button");
+  g.setAttribute("aria-label", it.t);
+  const rad = mid * Math.PI / 180;
+  g.style.setProperty("--dx", "0px"); g.style.setProperty("--dy", "0px");
+  g.style.setProperty("--dx2", f(20 * Math.cos(rad)) + "px"); g.style.setProperty("--dy2", f(-20 * Math.sin(rad)) + "px");
+  const path = document.createElementNS(NS, "path");
+  path.setAttribute("d", `M${f(x0)} ${f(y0)} A${R} ${R} 0 0 1 ${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)} A${r} ${r} 0 0 0 ${f(x3)} ${f(y3)} Z`);
+  path.setAttribute("fill", it.c);
+  g.appendChild(path);
+  const [fx, fy] = P((R + r) / 2, mid);
+  const ico = document.createElementNS(NS, "g");
+  ico.setAttribute("transform", `translate(${f(fx)} ${f(fy)}) scale(1.5)`);
+  ico.setAttribute("fill", "none"); ico.setAttribute("stroke", "currentColor");
+  ico.setAttribute("stroke-width", "3"); ico.setAttribute("stroke-linecap", "round"); ico.setAttribute("stroke-linejoin", "round");
+  ico.style.color = darkSeg(it.c) ? "#fff" : "#543725"; ico.style.pointerEvents = "none";
+  ico.innerHTML = faces[i];
+  g.appendChild(ico);
+  const [sx, sy] = P(R - 8, mid);
+  const sg = document.createElementNS(NS, "g"); sg.setAttribute("transform", `translate(${f(sx)} ${f(sy)})`); sg.style.pointerEvents = "none";
+  const sp = document.createElementNS(NS, "path"); sp.setAttribute("class", "spark"); sp.setAttribute("fill", "#fff"); sp.style.transformOrigin = "0 0";
+  sp.setAttribute("d", "M0 -26 Q3 -3 26 0 Q3 3 0 26 Q-3 3 -26 0 Q-3 -3 0 -26Z");
+  sg.appendChild(sp); g.appendChild(sg);
+  g.addEventListener("click", () => pick(i));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
+  document.getElementById("segs").appendChild(g);
+  segs.push({ g, mid, sp });
+});
+
+function pick(i) {
+  active = i;
+  gauge.classList.add("picked");
+  segs.forEach((s, k) => { s.g.classList.remove("plin"); s.sp.classList.remove("go"); s.g.classList.toggle("on", k === i); });
+  void gauge.offsetWidth; segs[i].g.classList.add("plin"); segs[i].sp.classList.add("go");
+  segs[i].g.parentNode.appendChild(segs[i].g);
+  needle.style.transform = "rotate(" + (90 - segs[i].mid) + "deg)";
+  copy.classList.remove("in");
+  copy.innerHTML = items[i].d ? "<h2></h2><p></p>" : "<h2></h2>";
+  copy.querySelector("h2").textContent = items[i].t;
+  if (items[i].d) copy.querySelector("p").textContent = items[i].d;
+  void copy.offsetWidth;
+  copy.classList.add("in");
+}
+document.addEventListener("keydown", e => { stop(); if (e.key === "ArrowLeft") pick(Math.min(n - 1, active + 1)); if (e.key === "ArrowRight") pick(Math.max(0, active - 1)); });
+
+// Recorrido automático: un color por segundo, en el orden de la lista (empieza por la calma, a la derecha)
+const START = 800, EACH = 1000;           // ms: espera inicial y tiempo por elemento
+let timers = [];
+function stop() { timers.forEach(clearTimeout); timers = []; }
+items.forEach((_, i) => timers.push(setTimeout(() => pick(i), START + EACH * i)));
+segs.forEach(s => s.g.addEventListener("click", stop));
+</script>
+</body>
+</html>
