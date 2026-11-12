@@ -60,8 +60,8 @@ seeker(path);
 // cada personita
 L.forEach(({idx,t})=>{
   const col=cols[idx],ped=col.querySelector('.ped'),fig=col.querySelector('.fig'),cone=cones[idx];
-  A(ped,[{offset:0,height:'46px',width:'130px'},{offset:o(t),height:'46px',width:'130px',easing:E},{offset:o(t+.9),height:'92px',width:'150px'},{offset:1,height:'92px',width:'150px'}]);
-  A(fig,[{offset:0,transform:'scale(1)'},{offset:o(t),transform:'scale(1)',easing:E},{offset:o(t+.9),transform:'scale(1.4)'},{offset:1,transform:'scale(1.4)'}]);
+  A(ped,[{offset:0,height:'46px',width:'130px'},{offset:o(t),height:'46px',width:'130px',easing:E},{offset:o(t+.9),height:'110px',width:'150px'},{offset:1,height:'110px',width:'150px'}]);
+  A(fig,[{offset:0,transform:'scale(1)'},{offset:o(t),transform:'scale(1)',easing:E},{offset:o(t+.9),transform:'scale(1.6)'},{offset:1,transform:'scale(1.6)'}]);
   A(fig.querySelector('.on'),[{offset:0,opacity:0},{offset:o(t+.1),opacity:0,easing:'ease-out'},{offset:o(t+.7),opacity:1},{offset:1,opacity:1}]);
   A(cone,[{offset:0,opacity:0,transform:'scaleY(.4)'},{offset:o(t-.1),opacity:0,transform:'scaleY(.4)',easing:'ease-out'},{offset:o(t+.5),opacity:1,transform:'scaleY(1)'},{offset:1,opacity:1,transform:'scaleY(1)'}]);
 });
