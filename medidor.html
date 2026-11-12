@@ -26,7 +26,12 @@ svg { display: block; width: 100%; height: auto; overflow: visible; }
 .seg { cursor: pointer; transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .4s ease, filter .4s ease; outline: none; }
 .seg { transform-origin: 400px 400px; }
 .seg:hover { transform: scale(1.025); }
-.seg.on { transform: scale(1.09); filter: drop-shadow(0 8px 12px rgba(0,0,0,.3)); }
+.seg.on { transform: scale(1.09); filter: drop-shadow(0 0 14px rgba(155,232,168,.9)) drop-shadow(0 8px 12px rgba(0,0,0,.3)); }
+.seg.on.plin { animation: plin .9s ease-out; }
+@keyframes plin { 0% { filter: drop-shadow(0 0 0 rgba(155,232,168,0)); } 30% { filter: drop-shadow(0 0 30px #9be8a8) drop-shadow(0 0 10px #9be8a8); } 100% { filter: drop-shadow(0 0 14px rgba(155,232,168,.9)) drop-shadow(0 8px 12px rgba(0,0,0,.3)); } }
+.spark { opacity: 0; pointer-events: none; }
+.spark.go { animation: spk .9s ease-out; }
+@keyframes spk { 0% { opacity: 0; transform: scale(0) rotate(0); } 35% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { opacity: 0; transform: scale(.2) rotate(90deg); } }
 .seg:focus-visible path { stroke: var(--verde); stroke-width: 4; }
 
 #needle { transform-origin: 400px 400px; transform: rotate(-75deg); transition: transform .95s cubic-bezier(.34,1.35,.5,1); filter: drop-shadow(0 5px 7px rgba(0,0,0,.35)); pointer-events: none; }
@@ -50,7 +55,7 @@ svg { display: block; width: 100%; height: auto; overflow: visible; }
   <svg viewBox="0 0 800 450" role="group" aria-label="Medidor de cinco colores">
     <g id="segs"></g>
     <g id="needle">
-      <rect x="391" y="110" width="18" height="290" rx="9" fill="#fff"/>
+      <rect x="391" y="172" width="18" height="228" rx="9" fill="#fff"/>
     </g>
     <circle cx="400" cy="400" r="34" fill="#1c5931"/>
     <circle cx="400" cy="400" r="13" fill="#fff"/>
@@ -61,24 +66,23 @@ svg { display: block; width: 100%; height: auto; overflow: visible; }
 <script>
 // Cambia aquí los textos de cada color (de izquierda a derecha)
 const items = [
-  { c: "#1c5931", t: "Prioriza.", d: "" },
-  { c: "#f1b542", t: "Organiza tareas.", d: "" },
-  { c: "#f2d091", t: "Comunica claramente.", d: "" },
-  { c: "#f1a54a", t: "Apoya al equipo.", d: "" },
-  { c: "#543725", t: "Toma decisiones rápidas.", d: "" },
-  { c: "#464842", t: "Mantiene la calma.", d: "" }
+  { c: "#1c5931", t: "Mantiene la calma.", d: "" },
+  { c: "#f1b542", t: "Prioriza.", d: "" },
+  { c: "#f2d091", t: "Organiza tareas.", d: "" },
+  { c: "#f1a54a", t: "Comunica claramente.", d: "" },
+  { c: "#543725", t: "Apoya al equipo.", d: "" },
+  { c: "#464842", t: "Toma decisiones rápidas.", d: "" }
 ];
 
 
-// Caritas: del estrés alto (izquierda) a la calma (derecha)
-const eyes = '<circle cx="-10" cy="-4" r="3.2" fill="currentColor" stroke="none"/><circle cx="10" cy="-4" r="3.2" fill="currentColor" stroke="none"/>';
+// Íconos (mismo orden que los textos)
 const faces = [
-  eyes + '<path d="M-19 -17 L-6 -11 M19 -17 L6 -11"/><path d="M-14 15 l7 -6 l7 6 l7 -6 l7 6"/><path d="M27 -26 q4 6 0 9 q-4 -3 0 -9z" fill="currentColor"/>',
-  eyes + '<path d="M-18 -11 L-6 -17 M18 -11 L6 -17"/><path d="M-12 15 Q0 7 12 15"/>',
-  eyes + '<path d="M-17 -14 L-5 -14 M17 -14 L5 -14"/><path d="M-11 12 L11 12"/>',
-  eyes + '<path d="M-11 10 Q0 15 11 10"/>',
-  eyes + '<path d="M-13 8 Q0 21 13 8"/>',
-  '<path d="M-15 -3 Q-9 -10 -3 -3 M3 -3 Q9 -10 15 -3"/><path d="M-15 7 Q0 27 15 7"/>'
+ '<path d="M-20 16 C-22 -10 -2 -24 22 -22 C24 2 6 20 -20 16 Z"/><path d="M-20 16 L8 -10"/>',
+ '<path d="M-22 -14h24 M-22 0h16 M-22 14h8"/><path d="M16 18V-16 M7 -7l9 -9 9 9"/>',
+ '<rect x="-18" y="-22" width="36" height="46" rx="6"/><path d="M-9 -6l3 3 6 -7 M4 -3h8 M-9 12l3 3 6 -7 M4 13h8"/>',
+ '<path d="M-24 -18H24V10H-6L-16 21V10H-24Z"/><path d="M-12 -8h24 M-12 0h14"/>',
+ '<circle cx="-10" cy="-10" r="7"/><circle cx="13" cy="-8" r="6"/><path d="M-24 20c0-12 7-18 14-18s14 6 14 18 M7 20c0-9 4-14 9-14 6 0 10 5 10 14"/>',
+ '<path d="M7 -26 L-13 4 H0 L-7 26 L15 -7 H2 Z"/>'
 ];
 const darkSeg = c => ["#1c5931", "#543725", "#464842"].includes(c);
 const cx = 400, cy = 400, R = 360, r = 190, n = items.length, step = 180 / n;
@@ -104,22 +108,28 @@ items.forEach((it, i) => {
   g.appendChild(path);
   const [fx, fy] = P((R + r) / 2, mid);
   const ico = document.createElementNS(NS, "g");
-  ico.setAttribute("transform", `translate(${f(fx)} ${f(fy)}) scale(1.05)`);
+  ico.setAttribute("transform", `translate(${f(fx)} ${f(fy)}) scale(1.5)`);
   ico.setAttribute("fill", "none"); ico.setAttribute("stroke", "currentColor");
-  ico.setAttribute("stroke-width", "4"); ico.setAttribute("stroke-linecap", "round"); ico.setAttribute("stroke-linejoin", "round");
+  ico.setAttribute("stroke-width", "3"); ico.setAttribute("stroke-linecap", "round"); ico.setAttribute("stroke-linejoin", "round");
   ico.style.color = darkSeg(it.c) ? "#fff" : "#543725"; ico.style.pointerEvents = "none";
-  ico.innerHTML = '<circle r="30"/>' + faces[i % faces.length];
+  ico.innerHTML = faces[i];
   g.appendChild(ico);
+  const [sx, sy] = P(R - 8, mid);
+  const sg = document.createElementNS(NS, "g"); sg.setAttribute("transform", `translate(${f(sx)} ${f(sy)})`); sg.style.pointerEvents = "none";
+  const sp = document.createElementNS(NS, "path"); sp.setAttribute("class", "spark"); sp.setAttribute("fill", "#fff"); sp.style.transformOrigin = "0 0";
+  sp.setAttribute("d", "M0 -26 Q3 -3 26 0 Q3 3 0 26 Q-3 3 -26 0 Q-3 -3 0 -26Z");
+  sg.appendChild(sp); g.appendChild(sg);
   g.addEventListener("click", () => pick(i));
   g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
   document.getElementById("segs").appendChild(g);
-  segs.push({ g, mid });
+  segs.push({ g, mid, sp });
 });
 
 function pick(i) {
   active = i;
   gauge.classList.add("picked");
-  segs.forEach((s, k) => s.g.classList.toggle("on", k === i));
+  segs.forEach((s, k) => { s.g.classList.remove("plin"); s.sp.classList.remove("go"); s.g.classList.toggle("on", k === i); });
+  void gauge.offsetWidth; segs[i].g.classList.add("plin"); segs[i].sp.classList.add("go");
   segs[i].g.parentNode.appendChild(segs[i].g);
   needle.style.transform = "rotate(" + (90 - segs[i].mid) + "deg)";
   copy.classList.remove("in");
